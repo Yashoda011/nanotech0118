@@ -70,6 +70,7 @@ interface AppState {
   toasts: Toast[];
   login: (email: string, password: string) => Promise<string | null>;
   signup: (input: { name: string; email: string; password: string }) => Promise<string | null>;
+  googleSignup: (input: { name: string; email: string; password: string }) => Promise<string | null>;
   continueAsGuest: () => Promise<void>;
   logout: () => void;
   syncFromBackend: () => Promise<void>;
@@ -323,11 +324,37 @@ export function AppProvider({ children }: { children: ReactNode }) {
         return e instanceof Error ? e.message : "Signup failed.";
       }
     },
-    [accounts, applyBackendSnapshot],
+    [accounts, applyBackendSnapshot, refreshBilling],
   );
 
-  const continueAsGuest = useCallback(async () => {
-    try {
+  const googleSignup = useCallback(
+    async (input: { name: string; email: string; password: string }): Promise<string | null> => {
+      const name = input.name.trim();
+      const email = input.email.trim().toLowerCase();
+      if (!name) return "Name is required.";
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return "Enter a valid email address.";
+      if (input.password.length < 6) return "Password must be at least 6 characters.";
+      try {
+        const res = await api.googleSignup(name, email, input.password);
+        setToken(res.access_token);
+        const u = toLocalUser(res.user);
+        setUser(u);
+        setSettings((prev) => ({ ...prev, name: res.user.name, email: res.user.email }));
+        await applyBackendSnapshot(res.user);
+        await refreshBilling();
+        return null;
+      } catch (e) {
+        if (isNetworkError(e)) {
+          setBackendOnline(false);
+          return "Backend unreachable — connect to create your Google account.";
+        }
+        return e instanceof Error ? e.message : "Google sign-up failed.";
+      }
+    },
+    [applyBackendSnapshot, refreshBilling],
+  );
+
+  const continueAsGuest = useCallback(async () => {    try {
       const res = await api.guest();
       setToken(res.access_token);
       setUser({ name: "Guest", email: res.user.email, guest: true, emailVerified: true, isAdmin: false });
@@ -523,6 +550,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       toasts,
       login,
       signup,
+      googleSignup,
       continueAsGuest,
       logout,
       syncFromBackend,
@@ -560,6 +588,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       toasts,
       login,
       signup,
+      googleSignup,
       continueAsGuest,
       logout,
       syncFromBackend,

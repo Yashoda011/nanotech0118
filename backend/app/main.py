@@ -26,6 +26,9 @@ try:
         for _col in ("email_verified", "is_admin"):
             if _cols and _col not in _cols:
                 _conn.execute(_text(f"ALTER TABLE users ADD COLUMN {_col} BOOLEAN DEFAULT 0"))
+        if _cols and "provider" not in _cols:
+            _conn.execute(_text("ALTER TABLE users ADD COLUMN provider VARCHAR(20) DEFAULT 'email'"))
+            _conn.execute(_text("UPDATE users SET provider = 'email' WHERE provider IS NULL"))
 except Exception:
     pass
 

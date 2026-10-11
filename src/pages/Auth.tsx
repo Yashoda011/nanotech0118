@@ -3,18 +3,23 @@ import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Globe, Mail, ArrowLeft } from "lucide-react";
 import { Logo } from "@/components/shell/Sidebar";
-import { Button, Toaster } from "@/components/ui";
+import { Button, Field, Input, Modal, Toaster } from "@/components/ui";
 import { SignIn1 } from "@/components/ui/modern-stunning-sign-in";
 import { useApp } from "@/store/app";
 
 export default function AuthPage({ mode }: { mode: "login" | "signup" }) {
-  const { user, login, signup, continueAsGuest, pushToast } = useApp();
+  const { user, login, signup, googleSignup, pushToast } = useApp();
   const navigate = useNavigate();
   const location = useLocation();
   const from = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname ?? "/";
 
   const [method, setMethod] = useState<"choose" | "email">("choose");
   const [error, setError] = useState<string | null>(null);
+  const [googleOpen, setGoogleOpen] = useState(false);
+  const [gName, setGName] = useState("");
+  const [gEmail, setGEmail] = useState("");
+  const [gPassword, setGPassword] = useState("");
+  const [gError, setGError] = useState<string | null>(null);
 
   if (user) return <Navigate to="/" replace />;
 
@@ -36,9 +41,20 @@ export default function AuthPage({ mode }: { mode: "login" | "signup" }) {
     }
   };
 
-  const onGoogle = async () => {
-    await continueAsGuest();
-    finish("Google sign-in is a demo — continuing as guest");
+  const onGoogle = () => {
+    setGError(null);
+    setGoogleOpen(true);
+  };
+
+  const submitGoogle = async () => {
+    setGError(null);
+    const err = await googleSignup({ name: gName, email: gEmail, password: gPassword });
+    if (err) {
+      setGError(err);
+      return;
+    }
+    setGoogleOpen(false);
+    finish("Google account created — verify your email to unlock everything!");
   };
 
   return (
@@ -74,7 +90,7 @@ export default function AuthPage({ mode }: { mode: "login" | "signup" }) {
                 </Button>
               </div>
               <p className="mt-4 text-center text-[11.5px] leading-relaxed text-ink-muted/80">
-                Google is instant demo access · Email uses a password account with verification.
+                Google creates a real member account (verify email next) · Email uses a password account.
               </p>
             </div>
           ) : (
@@ -93,6 +109,34 @@ export default function AuthPage({ mode }: { mode: "login" | "signup" }) {
           )}
         </motion.div>
       </main>
+
+      <Modal
+        open={googleOpen}
+        onClose={() => setGoogleOpen(false)}
+        title="Continue with Google"
+        description="Creates a real member account linked to your Google email — never a guest session. Verify the email next to unlock courses and Pro."
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setGoogleOpen(false)}>Cancel</Button>
+            <Button variant="gradient" onClick={() => void submitGoogle()}>Create Google account</Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <Field label="Full name">
+            <Input value={gName} onChange={(e) => setGName(e.target.value)} placeholder="Ada Lovelace" autoComplete="name" />
+          </Field>
+          <Field label="Gmail address">
+            <Input type="email" value={gEmail} onChange={(e) => setGEmail(e.target.value)} placeholder="you@gmail.com" autoComplete="email" />
+          </Field>
+          <Field label="Password (min 6 characters)">
+            <Input type="password" value={gPassword} onChange={(e) => setGPassword(e.target.value)} placeholder="Choose a password" autoComplete="new-password" />
+          </Field>
+          {gError && (
+            <p role="alert" className="rounded-xl border border-rose/30 bg-rose/10 px-3.5 py-2.5 text-[13px] text-rose">{gError}</p>
+          )}
+        </div>
+      </Modal>
 
       <Toaster />
     </div>
