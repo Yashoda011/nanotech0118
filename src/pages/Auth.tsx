@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Globe, Mail, ArrowLeft } from "lucide-react";
+import { Globe, Mail, ArrowLeft, ServerOff } from "lucide-react";
 import { Logo } from "@/components/shell/Sidebar";
 import { Button, Field, Input, Modal, Toaster } from "@/components/ui";
 import { SignIn1 } from "@/components/ui/modern-stunning-sign-in";
+import { api, API_BASE } from "@/lib/api";
 import { useApp } from "@/store/app";
 
 export default function AuthPage({ mode }: { mode: "login" | "signup" }) {
@@ -20,6 +21,24 @@ export default function AuthPage({ mode }: { mode: "login" | "signup" }) {
   const [gEmail, setGEmail] = useState("");
   const [gPassword, setGPassword] = useState("");
   const [gError, setGError] = useState<string | null>(null);
+  const [serverDown, setServerDown] = useState(false);
+
+  // Show immediately if the API is unreachable, so users know WHY
+  // Google signup can't create a server account right now.
+  useEffect(() => {
+    let cancelled = false;
+    api
+      .health()
+      .then(() => {
+        if (!cancelled) setServerDown(false);
+      })
+      .catch(() => {
+        if (!cancelled) setServerDown(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   if (user) return <Navigate to="/" replace />;
 
@@ -72,6 +91,16 @@ export default function AuthPage({ mode }: { mode: "login" | "signup" }) {
           <div className="mb-7 flex justify-center">
             <Logo />
           </div>
+
+          {serverDown && (
+            <div className="mb-4 flex items-start gap-2.5 rounded-xl border border-gold/30 bg-gold/8 px-4 py-3 text-[12.5px] leading-relaxed text-ink-soft">
+              <ServerOff className="mt-0.5 size-4 shrink-0 text-gold" />
+              <span>
+                Can&apos;t reach the server{API_BASE.includes("127.0.0.1") || API_BASE.includes("localhost") ? " on this computer — double-click start-all.bat in the project folder, then retry" : ""}.
+                Email signup still works in this browser; Google accounts need the server.
+              </span>
+            </div>
+          )}
 
           {method === "choose" ? (
             <div>
