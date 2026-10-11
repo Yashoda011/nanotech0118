@@ -1,0 +1,21 @@
+node_modules
+dist
+scripts/shots
+*.local
+.DS_Store
+
+*.tsbuildinfo
+dev.log
+dev.err
+install.log
+install.err
+
+# secrets — never commit (real JWT secret lives here)
+.env
+backend/.env
+*.db
+*.db-journal
+uploads/
+dev-server.log
+NanoSphere.url
+Open-NanoSphere.bat

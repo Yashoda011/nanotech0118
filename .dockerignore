@@ -1,0 +1,7 @@
+node_modules
+dist
+.git
+*.log
+nanosphere.db
+uploads
+backend/__pycache__

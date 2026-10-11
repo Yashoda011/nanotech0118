@@ -1,0 +1,311 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+/* shadcn brand tokens (pricing component). Additive only — existing
+   NanoSphere tokens above are untouched. */
+@theme inline {
+  --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-foreground);
+  --shadow-md: 0 4px 6px -1px var(--shadow), 0 2px 4px -2px var(--shadow);
+  --shadow-xl: 0 20px 25px -5px var(--shadow), 0 8px 10px -6px var(--shadow);
+}
+
+:root {
+  --primary: oklch(66.5% 0.1804 47.04);
+  --brand: oklch(66.5% 0.1804 47.04);
+  --brand-foreground: oklch(75.77% 0.159 55.91);
+  --shadow: #00000008;
+  /* shadcn surface tokens backing button/section variants */
+  --background: #060a12;
+  --foreground: #e8eefb;
+  --muted: #111c31;
+  --muted-foreground: #6d7b93;
+  --accent: #111c31;
+  --accent-foreground: #e8eefb;
+  --primary-foreground: #ffffff;
+  --secondary: #111c31;
+  --secondary-foreground: #e8eefb;
+  --destructive: #e11d48;
+  --destructive-foreground: #ffffff;
+  --input: #1a2540;
+  --ring: #60a5fa;
+}
+
+.dark {
+  --primary: oklch(0.985 0 0);
+  --primary-foreground: oklch(0.21 0.006 285.885);
+  --brand: oklch(83.6% 0.1177 66.87);
+  --brand-foreground: oklch(75.77% 0.159 55.91);
+  --shadow: #00000020;
+}
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  --color-void: #060a12;
+  --color-panel: #0a101d;
+  --color-card: #0d1524;
+  --color-elevated: #111c31;
+  --color-line: #1a2540;
+  --color-line-soft: #141d33;
+
+  --color-ink: #e8eefb;
+  --color-ink-soft: #a9b6cc;
+  --color-ink-muted: #6d7b93;
+
+  --color-blue: #3b82f6;
+  --color-blue-soft: #60a5fa;
+  --color-cyan: #22d3ee;
+  --color-violet: #8b5cf6;
+  --color-mint: #34d399;
+  --color-gold: #fbbf24;
+  --color-rose: #fb7185;
+
+  /* shadcn surface tokens (drive bg-primary, text-muted-foreground, …) */
+  --color-background: #060a12;
+  --color-foreground: #e8eefb;
+  --color-muted: #111c31;
+  --color-muted-foreground: #6d7b93;
+  --color-accent: #111c31;
+  --color-accent-foreground: #e8eefb;
+  --color-primary: oklch(66.5% 0.1804 47.04);
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #111c31;
+  --color-secondary-foreground: #e8eefb;
+  --color-destructive: #e11d48;
+  --color-destructive-foreground: #ffffff;
+  --color-input: #1a2540;
+  --color-ring: #60a5fa;
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    background-color: var(--color-void);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+  }
+
+  *,
+  ::before,
+  ::after {
+    border-color: var(--color-line);
+  }
+
+  ::selection {
+    background: rgba(59, 130, 246, 0.35);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-blue-soft);
+    outline-offset: 2px;
+    border-radius: 8px;
+  }
+
+  input,
+  select,
+  textarea,
+  button {
+    font: inherit;
+  }
+
+  input[type="range"] {
+    accent-color: var(--color-blue);
+  }
+
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: #26344f transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: #26344f;
+    border-radius: 999px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
+
+/* Light theme — applied via <html data-theme="light"> (see AppLayout effect).
+   "system" follows the OS preference through the media query below. */
+:root[data-theme="light"] {
+  --color-void: #f2f5fb;
+  --color-panel: #ffffff;
+  --color-card: #ffffff;
+  --color-elevated: #eef2f9;
+  --color-line: #dbe3f0;
+  --color-line-soft: #e7edf6;
+
+  --color-ink: #0d1526;
+  --color-ink-soft: #3c4a63;
+  --color-ink-muted: #75829a;
+}
+
+/* Accent overrides — applied via <html data-accent="..."> */
+:root[data-accent="cyan"] {
+  --color-blue: #0891b2;
+  --color-blue-soft: #06b6d4;
+}
+:root[data-accent="violet"] {
+  --color-blue: #7c3aed;
+  --color-blue-soft: #8b5cf6;
+}
+:root[data-accent="mint"] {
+  --color-blue: #059669;
+  --color-blue-soft: #34d399;
+}
+:root[data-accent="gold"] {
+  --color-blue: #b45309;
+  --color-blue-soft: #f59e0b;
+}
+:root[data-accent="rose"] {
+  --color-blue: #e11d48;
+  --color-blue-soft: #fb7185;
+}
+
+@media (prefers-color-scheme: light) {
+  :root[data-theme="system"] {
+    --color-void: #f2f5fb;
+    --color-panel: #ffffff;
+    --color-card: #ffffff;
+    --color-elevated: #eef2f9;
+    --color-line: #dbe3f0;
+    --color-line-soft: #e7edf6;
+
+    --color-ink: #0d1526;
+    --color-ink-soft: #3c4a63;
+    --color-ink-muted: #75829a;
+  }
+}
+
+@layer components {
+  .card {
+    background-color: color-mix(in srgb, var(--color-card) 92%, #0a1020);
+    border: 1px solid var(--color-line);
+    border-radius: 16px;
+    box-shadow: 0 18px 40px -28px rgba(0, 0, 0, 0.9);
+  }
+
+  .card-lift {
+    transition:
+      transform 0.25s cubic-bezier(0.22, 1, 0.36, 1),
+      border-color 0.25s ease,
+      box-shadow 0.25s ease;
+  }
+
+  .card-lift:hover {
+    transform: translateY(-4px);
+    border-color: rgba(96, 165, 250, 0.38);
+    box-shadow: 0 26px 50px -30px rgba(37, 99, 235, 0.55);
+  }
+
+  .grad-brand {
+    background-image: linear-gradient(120deg, #3b82f6 0%, #6366f1 45%, #a855f7 100%);
+  }
+
+  .grad-text {
+    background-image: linear-gradient(95deg, #5eead4 0%, #60a5fa 45%, #a78bfa 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .grad-btn {
+    background-image: linear-gradient(120deg, #2563eb 0%, #6d28d9 100%);
+    box-shadow: 0 14px 30px -16px rgba(79, 70, 229, 0.9);
+  }
+
+  .grad-btn:hover {
+    background-image: linear-gradient(120deg, #2f6df0 0%, #7c3aed 100%);
+    box-shadow: 0 18px 34px -16px rgba(109, 40, 217, 0.95);
+  }
+
+  .glass {
+    background: linear-gradient(160deg, rgba(23, 34, 58, 0.9) 0%, rgba(11, 18, 33, 0.92) 100%);
+    backdrop-filter: blur(14px);
+  }
+
+  /* Pricing CTA glow variants (pricing-column) */
+  .btn-glow {
+    background-image: linear-gradient(120deg, #2563eb 0%, #6d28d9 100%);
+    box-shadow:
+      0 0 24px -6px rgba(124, 58, 237, 0.8),
+      0 14px 30px -16px rgba(79, 70, 229, 0.9);
+    transition: filter 0.2s ease, transform 0.2s ease;
+  }
+  .btn-glow:hover {
+    filter: brightness(1.12);
+  }
+  .btn-glow-brand {
+    background-image: linear-gradient(120deg, oklch(66.5% 0.1804 47.04) 0%, oklch(75.77% 0.159 55.91) 100%);
+    color: #0b1224;
+    box-shadow:
+      0 0 28px -6px oklch(66.5% 0.1804 47.04 / 0.7),
+      0 14px 30px -16px oklch(66.5% 0.1804 47.04 / 0.8);
+    transition: filter 0.2s ease, transform 0.2s ease;
+  }
+  .btn-glow-brand:hover {
+    filter: brightness(1.08);
+  }
+
+  .skeleton {
+    background-image: linear-gradient(90deg, #101a2c 20%, #18243c 38%, #101a2c 58%);
+    background-size: 300% 100%;
+    animation: shimmer 1.5s ease-in-out infinite;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 120% 0;
+  }
+  100% {
+    background-position: -20% 0;
+  }
+}
+
+@keyframes float-slow {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes pulse-ring {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.7;
+  }
+  70% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.animate-float-slow {
+  animation: float-slow 7s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

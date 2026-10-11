@@ -1,0 +1,50 @@
+# One-command production stack: Postgres + FastAPI + static frontend.
+# 1. Copy .env.prod.example to .env.prod and fill secrets/URLs.
+# 2. docker compose --env-file .env.prod up -d --build
+# Frontend: http://SERVER_IP/   API docs: http://SERVER_IP:8000/docs
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-nanosphere}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-nanosphere}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  api:
+    build: ./backend
+    restart: unless-stopped
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-nanosphere}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-nanosphere}
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET}
+      JWT_ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: 1440
+      CORS_ORIGINS: ${CORS_ORIGINS:?set CORS_ORIGINS e.g. https://example.com}
+      ADMIN_EMAILS: ${ADMIN_EMAILS:-admin@nanosphere.io}
+      DEV_MAILBOX: "false"
+      FREE_OFFER_ENDS_AT: ${FREE_OFFER_ENDS_AT:-2026-10-31T00:00:00+00:00}
+      RESEARCH_API_URL: ${RESEARCH_API_URL:-https://api.semanticscholar.org/graph/v1/paper/search}
+    volumes:
+      - uploads:/data/uploads
+    ports:
+      - "8000:8000"
+
+  web:
+    build:
+      context: .
+      args:
+        VITE_API_URL: ${VITE_API_URL:?set VITE_API_URL e.g. https://api.example.com}
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "80:80"
+
+volumes:
+  pgdata:
+  uploads:
