@@ -9,5 +9,8 @@
       "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
     }
   },
-  "rewrites": [{ "source": "/(.*)", "destination": { "service": "web" } }]
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "https://nanotech0118-backend.onrender.com/$1" },
+    { "source": "/(.*)", "destination": { "service": "web" } }
+  ]
 }
