@@ -1,0 +1,15 @@
+# Vercel deploys the Vite frontend only.
+# The FastAPI backend ships to Render/Railway/Fly (see render.yaml + DEPLOY.md),
+# so keep it (and all server-only files) out of the Vercel deployment.
+backend/
+render.yaml
+docker-compose.yml
+Dockerfile
+nginx.conf
+*.db
+*.db-journal
+uploads/
+nanosphere.db
+dev-server.log
+.git/
+node_modules/
