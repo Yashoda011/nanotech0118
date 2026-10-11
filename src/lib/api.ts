@@ -152,6 +152,10 @@ export const api = {
   confirmCode: (code: string) =>
     req<{ verified: boolean }>(`/auth/confirm-code`, { method: "POST", body: JSON.stringify({ code }) }),
   devInbox: () => req<{ code: string; expires_at: string; email: string }>(`/auth/dev-inbox`),
+  forgot: (email: string) =>
+    req<{ sent: boolean; dev_code?: string }>(`/auth/forgot`, { method: "POST", body: JSON.stringify({ email }) }),
+  resetPassword: (email: string, code: string, new_password: string) =>
+    req<{ reset: boolean }>(`/auth/reset`, { method: "POST", body: JSON.stringify({ email, code, new_password }) }),
 
   // DB-backed catalogue
   dbMaterials: (params: { q?: string; category?: string; sort?: string } = {}) => {

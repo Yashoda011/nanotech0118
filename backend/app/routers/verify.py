@@ -1,20 +1,21 @@
-"""Email verification: 6-digit codes with expiry.
+"""Email verification + password reset: 6-digit codes with expiry.
 
 Production delivery is SMTP (configure); with DEV_MAILBOX=true (local demo)
-the latest code is fetchable via GET /auth/dev-inbox so the flow is testable
-end-to-end without a mail server.
+codes are returned/fetchable so the flows are testable end-to-end
+without a mail server.
 """
 
 import secrets
 from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy.orm import Session
 
 from ..config import settings
 from ..database import get_db
 from ..deps import current_user, require_member
 from ..models import EmailToken, User
+from ..security import hash_password
 
 router = APIRouter(prefix="/auth", tags=["auth-verify"])
 
@@ -23,6 +24,16 @@ CODE_TTL_MIN = 15
 
 class ConfirmIn(BaseModel):
     code: str = Field(min_length=4, max_length=10)
+
+
+class ForgotIn(BaseModel):
+    email: EmailStr
+
+
+class ResetIn(BaseModel):
+    email: EmailStr
+    code: str = Field(min_length=4, max_length=10)
+    new_password: str = Field(min_length=6, max_length=128)
 
 
 def _issue(db: Session, user: User) -> EmailToken:
@@ -91,3 +102,41 @@ def dev_inbox(user: User = Depends(current_user), db: Session = Depends(get_db))
     if not tok:
         raise HTTPException(status_code=404, detail="No active code — request one first.")
     return {"code": tok.code, "expires_at": tok.expires_at.isoformat(), "email": user.email}
+
+
+@router.post("/forgot")
+def forgot(body: ForgotIn, db: Session = Depends(get_db)):
+    """Issue a password-reset code. Always returns sent:true (no enumeration)."""
+    email = body.email.strip().lower()
+    user = db.query(User).filter(User.email == email).first()
+    out: dict = {"sent": True}
+    if user and not user.is_guest:
+        tok = _issue(db, user)
+        # TODO production: email `tok.code` via SMTP here.
+        if settings.DEV_MAILBOX:
+            out["dev_code"] = tok.code
+    return out
+
+
+@router.post("/reset")
+def reset_password(body: ResetIn, db: Session = Depends(get_db)):
+    email = body.email.strip().lower()
+    if len(body.new_password) < 6:
+        raise HTTPException(status_code=400, detail="New password must be at least 6 characters.")
+    user = db.query(User).filter(User.email == email).first()
+    if not user or user.is_guest:
+        raise HTTPException(status_code=400, detail="Invalid email or code.")
+    if not _check(db, user, body.code):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired code.")
+    # _check only reads; mark consumed + set new hash here.
+    tok = (
+        db.query(EmailToken)
+        .filter(EmailToken.owner_id == user.id, EmailToken.used == False)  # noqa: E712
+        .order_by(EmailToken.created_at.desc())
+        .first()
+    )
+    if tok:
+        tok.used = True
+    user.password_hash = hash_password(body.new_password)
+    db.commit()
+    return {"reset": True}

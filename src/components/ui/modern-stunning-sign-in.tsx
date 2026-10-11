@@ -1,6 +1,7 @@
 import * as React from "react";
-import { Globe, Hexagon } from "lucide-react";
+import { Globe, Hexagon, KeyRound } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { api } from "@/lib/api";
 
 export interface SignIn1Props {
   mode?: "login" | "signup";
@@ -24,6 +25,14 @@ const SignIn1 = ({ mode = "login", serverError, hideGoogle = false, onSubmit, on
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [error, setError] = React.useState("");
+  const [forgot, setForgot] = React.useState(false);
+  const [fStep, setFStep] = React.useState<1 | 2>(1);
+  const [fEmail, setFEmail] = React.useState("");
+  const [fCode, setFCode] = React.useState("");
+  const [fPass, setFPass] = React.useState("");
+  const [fMsg, setFMsg] = React.useState<string | null>(null);
+  const [fErr, setFErr] = React.useState<string | null>(null);
+  const [fBusy, setFBusy] = React.useState(false);
 
   const validateEmail = (value: string) => {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
@@ -51,6 +60,51 @@ const SignIn1 = ({ mode = "login", serverError, hideGoogle = false, onSubmit, on
   };
 
   const shownError = error || serverError;
+
+  const sendResetCode = async () => {
+    if (!validateEmail(fEmail)) {
+      setFErr("Enter your account email first.");
+      return;
+    }
+    setFErr(null);
+    setFBusy(true);
+    try {
+      const res = await api.forgot(fEmail.trim());
+      setFMsg(res.dev_code ? `Demo code: ${res.dev_code} (valid 15 min)` : "If the account exists, a reset code was sent.");
+      setFStep(2);
+    } catch (e) {
+      setFErr(e instanceof Error ? e.message : "Could not send code.");
+    } finally {
+      setFBusy(false);
+    }
+  };
+
+  const submitReset = async () => {
+    if (fCode.trim().length < 4) {
+      setFErr("Enter the 6-digit code.");
+      return;
+    }
+    if (fPass.length < 6) {
+      setFErr("New password must be at least 6 characters.");
+      return;
+    }
+    setFErr(null);
+    setFBusy(true);
+    try {
+      await api.resetPassword(fEmail.trim(), fCode.trim(), fPass);
+      setFMsg("Password reset! Go back and sign in with the new password.");
+      setFStep(1);
+      setFCode("");
+      setFPass("");
+    } catch (e) {
+      setFErr(e instanceof Error ? e.message : "Reset failed.");
+    } finally {
+      setFBusy(false);
+    }
+  };
+
+  const inputCls =
+    "w-full rounded-xl bg-white/10 px-5 py-3 text-sm text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400";
 
   return (
     <div className="flex w-full flex-col items-center">
@@ -102,7 +156,40 @@ const SignIn1 = ({ mode = "login", serverError, hideGoogle = false, onSubmit, on
               onKeyDown={(e) => e.key === "Enter" && handleSignIn()}
             />
             {shownError && <div className="text-left text-sm text-red-400">{shownError}</div>}
+            {mode === "login" && !forgot && (
+              <button onClick={() => { setForgot(true); setFStep(1); setFMsg(null); setFErr(null); setFEmail(email); }} className="text-left text-xs text-gray-400 underline-offset-2 hover:text-white hover:underline">
+                Forgot password?
+              </button>
+            )}
           </div>
+          {mode === "login" && forgot && (
+            <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
+              <p className="mb-3 flex items-center gap-2 text-sm font-medium text-white">
+                <KeyRound className="size-4" /> Reset password
+              </p>
+              {fStep === 1 ? (
+                <div className="flex flex-col gap-3">
+                  <input placeholder="Account email" type="email" value={fEmail} onChange={(e) => setFEmail(e.target.value)} className={inputCls} />
+                  <button onClick={() => void sendResetCode()} disabled={fBusy} className="w-full rounded-full bg-white/10 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-white/20 disabled:opacity-50">
+                    {fBusy ? "Sending…" : "Send reset code"}
+                  </button>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  <input placeholder="6-digit code" type="text" inputMode="numeric" value={fCode} onChange={(e) => setFCode(e.target.value)} className={inputCls} />
+                  <input placeholder="New password (min 6)" type="password" value={fPass} onChange={(e) => setFPass(e.target.value)} className={inputCls} />
+                  <button onClick={() => void submitReset()} disabled={fBusy} className="w-full rounded-full bg-white/10 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-white/20 disabled:opacity-50">
+                    {fBusy ? "Resetting…" : "Set new password"}
+                  </button>
+                </div>
+              )}
+              {fMsg && <div className="mt-2 text-left text-xs text-emerald-300">{fMsg}</div>}
+              {fErr && <div className="mt-2 text-left text-xs text-red-400">{fErr}</div>}
+              <button onClick={() => setForgot(false)} className="mt-2 text-xs text-gray-400 underline-offset-2 hover:text-white hover:underline">
+                Back to sign in
+              </button>
+            </div>
+          )}
           <hr className="opacity-10" />
           <div>
             <button
