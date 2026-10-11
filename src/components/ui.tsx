@@ -172,9 +172,13 @@ export function Modal({
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
+  const wasOpen = useRef(false);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      wasOpen.current = false;
+      return;
+    }
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
       if (e.key === "Tab" && panelRef.current) {
@@ -195,11 +199,20 @@ export function Modal({
     };
     document.addEventListener("keydown", onKey);
     document.body.style.overflow = "hidden";
-    const t = window.setTimeout(() => panelRef.current?.focus(), 30);
+    // Focus the panel only on the closed -> open transition. Focusing on
+    // every render (e.g. each keystroke, when parents pass a fresh onClose)
+    // would yank focus out of modal inputs and break typing/backspace.
+    let t: number | undefined;
+    if (!wasOpen.current) {
+      t = window.setTimeout(() => {
+        if (document.activeElement === document.body) panelRef.current?.focus();
+      }, 30);
+    }
+    wasOpen.current = true;
     return () => {
       document.removeEventListener("keydown", onKey);
       document.body.style.overflow = "";
-      window.clearTimeout(t);
+      if (t !== undefined) window.clearTimeout(t);
     };
   }, [open, onClose]);
 
