@@ -195,7 +195,53 @@ export const api = {
     req<AdminUser>(`/admin/users/${id}`, { method: "PATCH", body: JSON.stringify(b) }),
   adminTickets: () => req<{ tickets: SupportTicket[] }>(`/admin/tickets`),
   adminCloseTicket: (id: string) => req<{ id: string; status: string }>(`/admin/tickets/${id}/close`, { method: "POST" }),
+
+  // Industrial batches (backend-owned)
+  batches: () => req<{ batches: Batch[] }>(`/batches`),
+  createBatch: (b: { name: string; material_id: string; kg: number; yield_pct: number; qc_pass: boolean }) =>
+    req<Batch>(`/batches`, { method: "POST", body: JSON.stringify(b) }),
+  deleteBatch: (id: string) => req<void>(`/batches/${id}`, { method: "DELETE" }),
+
+  // Community forum (backend-owned)
+  threads: (params: { tag?: string; q?: string } = {}) => {
+    const qs = new URLSearchParams();
+    if (params.tag) qs.set("tag", params.tag);
+    if (params.q) qs.set("q", params.q);
+    const s = qs.toString();
+    return req<{ threads: ForumThread[]; total: number; source: string }>(`/community/threads${s ? `?${s}` : ""}`);
+  },
+  createThread: (b: { title: string; body: string; tag: string }) =>
+    req<ForumThread>(`/community/threads`, { method: "POST", body: JSON.stringify(b) }),
+  replyThread: (id: string, text: string) =>
+    req<{ id: string; author: string; text: string; at: string }>(`/community/threads/${id}/replies`, {
+      method: "POST",
+      body: JSON.stringify({ text }),
+    }),
+  likeThread: (id: string) =>
+    req<{ likes: number; liked: boolean }>(`/community/threads/${id}/like`, { method: "POST" }),
 };
+
+export interface Batch {
+  id: string;
+  name: string;
+  material_id: string;
+  kg: number;
+  yieldPct: number;
+  qcPass: boolean;
+  createdAt: string;
+}
+
+export interface ForumThread {
+  id: string;
+  title: string;
+  body: string;
+  tag: string;
+  author: string;
+  likes: number;
+  liked: boolean;
+  at: string;
+  replies: { id: string; author: string; text: string; at: string }[];
+}
 
 export interface CourseMeta {
   id: string;

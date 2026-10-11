@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .config import cors_origins
 from .database import Base, SessionLocal, engine
-from .routers import admin, auth, billing, datasets, learn, materials, projects, research, science, support, verify, workspace
+from .routers import admin, auth, batches, billing, community, datasets, learn, materials, projects, research, science, support, verify, workspace
 from .schemas import HealthOut
 
 Base.metadata.create_all(bind=engine)
@@ -63,6 +63,8 @@ app.include_router(materials.router)
 app.include_router(research.router)
 app.include_router(support.router)
 app.include_router(admin.router)
+app.include_router(batches.router)
+app.include_router(community.router)
 
 
 @app.get("/health", response_model=HealthOut)

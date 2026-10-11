@@ -197,7 +197,7 @@ GLOSSARY = [
 
 
 def seed_all(db) -> None:
-    from .models import Article, GlossaryTerm, LessonRow, Material
+    from .models import Article, Batch, GlossaryTerm, LessonRow, Material, Reply, Thread
     if db.query(Material).count() == 0:
         for m in MATERIALS:
             d = dict(m)
@@ -215,4 +215,20 @@ def seed_all(db) -> None:
     if db.query(GlossaryTerm).count() == 0:
         for term, definition, tag in GLOSSARY:
             db.add(GlossaryTerm(term=term, definition=definition, tag=tag))
+    if db.query(Thread).count() == 0:
+        t1 = Thread(id="th_seed1", title="Best dispersant for Ag nanoparticle ink?", tag="Formulation",
+                    author="Maya R.",
+                    body="My silver traces crack after sintering at 150C. Which dispersant keeps 40nm Ag stable in ethanol without killing conductivity?")
+        t2 = Thread(id="th_seed2", title="Scherrer vs TEM sizes disagree - normal?", tag="Characterization",
+                    author="Prof. S.",
+                    body="XRD gives 18 nm, TEM shows 35 nm particles. Is my FWHM wrong or is this expected?")
+        t3 = Thread(id="th_seed3", title="Showcase: ZnO nanorod gas sensor array", tag="Showcase", author="Aarav",
+                    body="Room-temperature response to 50 ppm ethanol using the Nano Sensor project template.")
+        t1.likes_count, t2.likes_count, t3.likes_count = 12, 8, 21
+        db.add_all([t1, t2, t3])
+        db.flush()
+        db.add(Reply(thread_id="th_seed1", author="Dev K.",
+                     text="Try 1 wt% PVP (10k) + slow ramp 2C/min. Fixed the same cracking for me."))
+        db.add(Reply(thread_id="th_seed2", author="Nano Team",
+                     text="Expected - Scherrer measures coherent crystallites, TEM sees whole particles. Compare both in Lab Tools."))
     db.commit()

@@ -1,10 +1,12 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Users, Plus, ThumbsUp, MessageSquare, Search } from "lucide-react";
 import { PageHeader } from "@/components/shell/AppLayout";
 import { Card, Button, Field, Input, Modal, Badge, EmptyState } from "@/components/ui";
+import { api, getToken, type ForumThread } from "@/lib/api";
 import { readLS, writeLS } from "@/lib/storage";
 import { useApp } from "@/store/app";
-import { uid, relativeTime, cn } from "@/lib/utils";
+import { relativeTime, cn } from "@/lib/utils";
 
 interface Reply {
   id: string;
@@ -50,7 +52,9 @@ const SEED: Thread[] = [
 const TAGS = ["All", "Formulation", "Characterization", "Showcase", "Safety", "Business"];
 
 export default function CommunityPage() {
-  const { pushToast, settings } = useApp();
+  const { pushToast, user, backendOnline } = useApp();
+  const navigate = useNavigate();
+  const isMember = !!user && !user.guest && !!getToken();
   const [threads, setThreads] = useState<Thread[]>(() => readLS("threads", SEED));
   const [tag, setTag] = useState("All");
   const [query, setQuery] = useState("");
@@ -66,6 +70,91 @@ export default function CommunityPage() {
     writeLS("threads", next);
   };
 
+  const mapServer = (t: ForumThread): Thread => ({
+    id: t.id,
+    title: t.title,
+    body: t.body,
+    tag: t.tag,
+    author: t.author,
+    likes: t.likes,
+    liked: t.liked,
+    at: t.at,
+    replies: t.replies,
+  });
+
+  // Backend owns threads when online (shared forum); local seeds are offline fallback.
+  useEffect(() => {
+    if (!backendOnline) return;
+    api
+      .threads()
+      .then((res) => {
+        const mapped = res.threads.map(mapServer);
+        setThreads(mapped);
+        writeLS("threads", mapped);
+      })
+      .catch(() => {});
+  }, [backendOnline]);
+
+  const needEmail = () => {
+    if (!isMember) {
+      pushToast("Posting needs an email account — please sign in.", "info");
+      navigate("/login", { state: { from: { pathname: "/community" } } });
+      return true;
+    }
+    return false;
+  };
+
+  const toggleLike = async (t: Thread) => {
+    if (needEmail()) return;
+    try {
+      const res = await api.likeThread(t.id);
+      setThreads((prev) => {
+        const next = prev.map((x) => (x.id === t.id ? { ...x, likes: res.likes, liked: res.liked } : x));
+        writeLS("threads", next);
+        return next;
+      });
+    } catch (e) {
+      pushToast(e instanceof Error ? e.message : "Like failed", "info");
+    }
+  };
+
+  const postReply = async (t: Thread) => {
+    if (needEmail()) return;
+    const text = replyText.trim();
+    if (!text) return;
+    try {
+      const r = await api.replyThread(t.id, text);
+      setThreads((prev) => {
+        const next = prev.map((x) => (x.id === t.id ? { ...x, replies: [...x.replies, r] } : x));
+        writeLS("threads", next);
+        return next;
+      });
+      setReplyText("");
+      pushToast("Reply posted", "success");
+    } catch (e) {
+      pushToast(e instanceof Error ? e.message : "Reply failed", "info");
+    }
+  };
+
+  const postThread = async () => {
+    if (needEmail()) return;
+    if (!title.trim() || !body.trim()) return;
+    try {
+      const created = await api.createThread({ title: title.trim(), body: body.trim(), tag: newTag });
+      setThreads((prev) => {
+        const next = [mapServer(created), ...prev];
+        writeLS("threads", next);
+        return next;
+      });
+      setOpen(false);
+      setTitle("");
+      setBody("");
+      pushToast("Discussion posted", "success");
+    } catch (e) {
+      pushToast(e instanceof Error ? e.message : "Post failed", "info");
+    }
+  };
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return threads.filter((t) => {
@@ -79,7 +168,7 @@ export default function CommunityPage() {
     <div className="mx-auto max-w-[900px]">
       <PageHeader
         title="Community"
-        subtitle={`${threads.length} discussions — ask formulation questions, share results, meet researchers.`}
+        subtitle={`${threads.length} discussions — shared forum in the backend database${backendOnline ? "" : " (offline: showing saved copy)"}. Posting needs an email account.`}
         actions={<Button variant="gradient" onClick={() => setOpen(true)}><Plus className="size-4" /> New discussion</Button>}
       />
 
@@ -124,7 +213,7 @@ export default function CommunityPage() {
               <p className="mt-1.5 text-[13.5px] leading-relaxed text-ink-soft">{t.body}</p>
               <div className="mt-3 flex items-center gap-2">
                 <button
-                  onClick={() => persist(threads.map((x) => (x.id === t.id ? { ...x, likes: x.likes + (x.liked ? -1 : 1), liked: !x.liked } : x)))}
+                  onClick={() => void toggleLike(t)}
                   className={cn(
                     "flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px] font-medium transition-colors",
                     t.liked ? "border-blue/50 bg-blue/12 text-ink" : "border-line text-ink-muted hover:text-ink",
@@ -145,13 +234,7 @@ export default function CommunityPage() {
                     value={replyText}
                     onChange={(e) => setReplyText(e.target.value)}
                     onKeyDown={(e) => {
-                      if (e.key === "Enter" && replyText.trim()) {
-                        persist(threads.map((x) => x.id === t.id ? {
-                          ...x, replies: [...x.replies, { id: uid("r"), author: settings.name, text: replyText.trim(), at: new Date().toISOString() }],
-                        } : x));
-                        setReplyText("");
-                        pushToast("Reply posted", "success");
-                      }
+                      if (e.key === "Enter" && replyText.trim()) void postReply(t);
                     }}
                     placeholder="Write a reply… (Enter to post)"
                     aria-label="Write a reply"
@@ -160,13 +243,7 @@ export default function CommunityPage() {
                   <Button
                     size="sm"
                     disabled={!replyText.trim()}
-                    onClick={() => {
-                      persist(threads.map((x) => x.id === t.id ? {
-                        ...x, replies: [...x.replies, { id: uid("r"), author: settings.name, text: replyText.trim(), at: new Date().toISOString() }],
-                      } : x));
-                      setReplyText("");
-                      pushToast("Reply posted", "success");
-                    }}
+                    onClick={() => void postReply(t)}
                   >
                     Post
                   </Button>
@@ -197,13 +274,7 @@ export default function CommunityPage() {
             <Button
               variant="gradient"
               disabled={!title.trim() || !body.trim()}
-              onClick={() => {
-                persist([{ id: uid("t"), title: title.trim(), body: body.trim(), tag: newTag, author: settings.name, likes: 0, replies: [], at: new Date().toISOString() }, ...threads]);
-                setOpen(false);
-                setTitle("");
-                setBody("");
-                pushToast("Discussion posted", "success");
-              }}
+              onClick={() => void postThread()}
             >
               Post discussion
             </Button>

@@ -257,3 +257,55 @@ class Ticket(Base):
     message: Mapped[str] = mapped_column(Text)
     status: Mapped[str] = mapped_column(String(20), default="open")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
+class Batch(Base):
+    """Industrial production batch — backend-owned business data."""
+
+    __tablename__ = "batches"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True, default=lambda: _uid("batch"))
+    owner_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    name: Mapped[str] = mapped_column(String(200))
+    material_id: Mapped[str] = mapped_column(String(80))
+    kg: Mapped[float] = mapped_column(default=0)
+    yield_pct: Mapped[float] = mapped_column(default=0)
+    qc_pass: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
+class Thread(Base):
+    """Community discussion thread."""
+
+    __tablename__ = "threads"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True, default=lambda: _uid("th"))
+    owner_id: Mapped[str] = mapped_column(String(64), nullable=True, index=True)
+    title: Mapped[str] = mapped_column(String(300))
+    body: Mapped[str] = mapped_column(Text, default="")
+    tag: Mapped[str] = mapped_column(String(60), default="General")
+    author: Mapped[str] = mapped_column(String(120), default="Member")
+    likes_count: Mapped[int] = mapped_column(default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+    replies: Mapped[list["Reply"]] = relationship(back_populates="thread", cascade="all, delete-orphan")
+
+
+class Reply(Base):
+    __tablename__ = "replies"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True, default=lambda: _uid("re"))
+    thread_id: Mapped[str] = mapped_column(ForeignKey("threads.id"), index=True)
+    owner_id: Mapped[str] = mapped_column(String(64), nullable=True)
+    author: Mapped[str] = mapped_column(String(120), default="Member")
+    text: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+    thread: Mapped["Thread"] = relationship(back_populates="replies")
+
+
+class ThreadLike(Base):
+    __tablename__ = "thread_likes"
+
+    owner_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    thread_id: Mapped[str] = mapped_column(ForeignKey("threads.id"), primary_key=True)
