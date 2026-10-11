@@ -1,0 +1,45 @@
+# Deploy FRONTEND to Vercel on every push to master.
+#
+# One-time setup (repo Settings > Secrets and variables > Actions):
+#   VERCEL_TOKEN  - from https://vercel.com/account/tokens
+#   VERCEL_ORG_ID  - `.vercel/project.json` > orgId  (or `vercel api /v2/user` > id... use team id)
+#   VERCEL_PROJECT_ID - `.vercel/project.json` > projectId
+#   VITE_API_URL  - public backend URL, e.g. https://nanosphere-api.onrender.com
+#                   (leave empty until the backend is live -> offline demo mode)
+name: Deploy frontend (Vercel)
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "src/**"
+      - "public/**"
+      - "index.html"
+      - "package.json"
+      - "package-lock.json"
+      - "vite.config.ts"
+      - "vercel.json"
+      - ".github/workflows/deploy-frontend.yml"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+        env:
+          VITE_API_URL: ${{ secrets.VITE_API_URL }}
+      - name: Deploy to Vercel
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: "--prod"
+          working-directory: ./

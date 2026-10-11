@@ -1,0 +1,49 @@
+# Deploy BACKEND to Render on every push to master.
+#
+# Render auto-deploys from GitHub by itself once the Blueprint is applied, so
+# this workflow is a BACKUP trigger + health gate:
+#   1. Waits for Render (it watches the repo automatically).
+#   2. Hits /health until OK, fails loudly if the API never comes up.
+#
+# One-time setup:
+#   a. Render dashboard > New > Blueprint > Yashoda011/nanotech0118 > Apply
+#      (creates nanosphere-api + Postgres from render.yaml).
+#   b. Repo Settings > Secrets and variables > Actions:
+#        BACKEND_URL - e.g. https://nanosphere-api.onrender.com (no trailing /)
+#
+# NOTE: Render free tier sleeps when idle — first /health hit can take ~60s.
+name: Deploy backend check (Render)
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "backend/**"
+      - "render.yaml"
+      - ".github/workflows/deploy-backend.yml"
+
+jobs:
+  health-gate:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Wait for Render + check /health
+        env:
+          BACKEND_URL: ${{ secrets.BACKEND_URL }}
+        run: |
+          if [ -z "$BACKEND_URL" ]; then
+            echo "BACKEND_URL secret not set - skipping (set it after Render Blueprint apply)."
+            exit 0
+          fi
+          echo "Probing $BACKEND_URL/health ..."
+          for i in $(seq 1 20); do
+            CODE=$(curl -s -o /dev/null -w "%{http_code}" "$BACKEND_URL/health" || true)
+            echo "attempt $i -> $CODE"
+            if [ "$CODE" = "200" ]; then
+              echo "Backend is live."
+              exit 0
+            fi
+            sleep 30
+          done
+          echo "Backend never became healthy."
+          exit 1
