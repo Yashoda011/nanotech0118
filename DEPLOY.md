@@ -43,11 +43,20 @@ Let's Encrypt) in front for HTTPS — **do not serve login traffic over HTTP.**
 
 - **Frontend** → Vercel / Netlify / Cloudflare Pages: root `C:\Users\acer\nanosphere-site`,
   build `npm run build`, output `dist`, env `VITE_API_URL=https://<api-host>`.
-- **Backend** → Render / Railway / Fly: root `backend/`,
-  build `pip install -r requirements.txt`, start
-  `uvicorn app.main:app --host 0.0.0.0 --port $PORT`.
-- **Database** → managed Postgres; set `DATABASE_URL=postgresql+psycopg2://…`,
-  `CORS_ORIGINS=https://<frontend-host>`, `DEV_MAILBOX=false`.
+- **Backend → Render (blueprint, ~5 min):** repo root has `render.yaml`.
+  1. Render dashboard → **New → Blueprint** → select `Yashoda011/nanotech0118` → Apply.
+     This creates the `nanosphere-api` web service + free Postgres together.
+  2. Set env: confirm `CORS_ORIGINS` = your Vercel domain (e.g.
+     `https://nanotech0118.vercel.app`), `ADMIN_EMAILS` = your email.
+     `JWT_SECRET` auto-generates, `DEV_MAILBOX` is already `false`.
+  3. Deploy → copy the service URL (`https://nanosphere-api.onrender.com`).
+  4. Vercel → project → **Settings → Environment Variables**:
+     `VITE_API_URL=https://nanosphere-api.onrender.com` → **Redeploy**.
+  5. Smoke test: sign up on the live site → verify email → run 6 simulations
+     (6th must demand Pro) → buy Pro → unlimited. Admin login shows the user.
+- **Database** → managed Postgres via the blueprint; tables + catalogue seeds
+  auto-create on first boot. `DATABASE_URL` `postgres://` scheme is normalized
+  in code (`backend/app/database.py`), no manual fix needed.
 
 ## Production checklist (must-do)
 

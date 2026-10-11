@@ -3,11 +3,24 @@ from sqlalchemy.orm import declarative_base, sessionmaker
 
 from .config import settings
 
+
+def normalize_url(url: str) -> str:
+    # Managed hosts (Render/Railway) expose postgres:// — SQLAlchemy needs
+    # an explicit driver scheme.
+    if url.startswith("postgres://"):
+        return "postgresql+psycopg2://" + url[len("postgres://") :]
+    if url.startswith("postgresql://"):
+        return "postgresql+psycopg2://" + url[len("postgresql://") :]
+    return url
+
+
+DATABASE_URL = normalize_url(settings.DATABASE_URL)
+
 connect_args = {}
-if settings.DATABASE_URL.startswith("sqlite"):
+if DATABASE_URL.startswith("sqlite"):
     connect_args = {"check_same_thread": False}
 
-engine = create_engine(settings.DATABASE_URL, pool_pre_ping=True, connect_args=connect_args)
+engine = create_engine(DATABASE_URL, pool_pre_ping=True, connect_args=connect_args)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
