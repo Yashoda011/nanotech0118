@@ -1,5 +1,21 @@
 # Deploying NanoSphere — YES, it is deploy-ready.
 
+## Option 0 — Frontend on Vercel (fastest, free)
+
+Repo already contains `vercel.json` (Vite build + SPA rewrites).
+
+1. Go to **vercel.com → Add New → Project → Import `Yashoda011/nanotech0118`**.
+2. Framework preset: **Vite** (auto-detected). Build: `npm run build`. Output: `dist`.
+3. Environment variables:
+   - `VITE_API_URL` = your public API URL (e.g. `https://nanosphere-api.onrender.com`).
+     Omit it and the site runs in **offline demo mode** (bundled catalogue,
+     localStorage auth, local simulations) — fully usable, no backend features.
+4. Deploy. Every `git push` to `master` redeploys automatically.
+
+> Backend on Vercel? Vercel is serverless/edge — FastAPI + Postgres belongs on
+> Render/Railway/Fly (see Option B below), then paste its URL as `VITE_API_URL`
+> and redeploy. `CORS_ORIGINS` on the backend must include the Vercel domain.
+
 Final sweep status: backend suites ALL OK (auth/learn/billing/tiers/full +
 20/20 adversarial), DB 18/18 tables integrity ok, `tsc -b` clean, build clean,
 21/21 routes 200.
