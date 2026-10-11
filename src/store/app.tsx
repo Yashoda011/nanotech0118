@@ -14,7 +14,7 @@ import {
 } from "@/data/seeds";
 import type { ChartMetricKey } from "@/data/materials";
 import { clearAllLS, readLS, removeLS, writeLS } from "@/lib/storage";
-import { api, getToken, setToken } from "@/lib/api";
+import { api, getToken, setToken, API_BASE } from "@/lib/api";
 import { uid } from "@/lib/utils";
 
 export type ThemeMode = "dark" | "light" | "system";
@@ -346,7 +346,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       } catch (e) {
         if (isNetworkError(e)) {
           setBackendOnline(false);
-          return "Backend unreachable — connect to create your Google account.";
+          const local = API_BASE.includes("127.0.0.1") || API_BASE.includes("localhost");
+          return local
+            ? "Backend isn't running on this computer — double-click start-all.bat in the project folder, then retry."
+            : "No server is connected to this site yet — Google accounts need the backend. Try email signup instead.";
         }
         return e instanceof Error ? e.message : "Google sign-up failed.";
       }
