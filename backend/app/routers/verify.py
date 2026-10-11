@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 from ..config import settings
 from ..database import get_db
 from ..deps import current_user, require_member
+from ..mailer import send_code
 from ..models import EmailToken, User
 from ..security import hash_password
 
@@ -71,9 +72,9 @@ def request_code(user: User = Depends(require_member), db: Session = Depends(get
     if user.email_verified:
         return {"sent": False, "verified": True}
     tok = _issue(db, user)
-    # TODO production: send `tok.code` via SMTP to user.email here.
-    out: dict = {"sent": True, "expires_minutes": CODE_TTL_MIN}
-    if settings.DEV_MAILBOX:
+    mailed = send_code(user.email, tok.code, "verification")
+    out: dict = {"sent": True, "expires_minutes": CODE_TTL_MIN, "mailed": mailed}
+    if not mailed and settings.DEV_MAILBOX:
         out["dev_code"] = tok.code
     return out
 
@@ -112,8 +113,9 @@ def forgot(body: ForgotIn, db: Session = Depends(get_db)):
     out: dict = {"sent": True}
     if user and not user.is_guest:
         tok = _issue(db, user)
-        # TODO production: email `tok.code` via SMTP here.
-        if settings.DEV_MAILBOX:
+        mailed = send_code(user.email, tok.code, "password reset")
+        out["mailed"] = mailed
+        if not mailed and settings.DEV_MAILBOX:
             out["dev_code"] = tok.code
     return out
 

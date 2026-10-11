@@ -148,12 +148,12 @@ export const api = {
     req<{ plan: string; is_pro: boolean; pro_since: string }>(`/billing/cancel`, { method: "POST" }),
 
   // Email verification
-  requestCode: () => req<{ sent: boolean; verified?: boolean; dev_code?: string }>(`/auth/request-code`, { method: "POST" }),
+  requestCode: () => req<{ sent: boolean; verified?: boolean; mailed?: boolean; dev_code?: string }>(`/auth/request-code`, { method: "POST" }),
   confirmCode: (code: string) =>
     req<{ verified: boolean }>(`/auth/confirm-code`, { method: "POST", body: JSON.stringify({ code }) }),
   devInbox: () => req<{ code: string; expires_at: string; email: string }>(`/auth/dev-inbox`),
   forgot: (email: string) =>
-    req<{ sent: boolean; dev_code?: string }>(`/auth/forgot`, { method: "POST", body: JSON.stringify({ email }) }),
+    req<{ sent: boolean; mailed?: boolean; dev_code?: string }>(`/auth/forgot`, { method: "POST", body: JSON.stringify({ email }) }),
   resetPassword: (email: string, code: string, new_password: string) =>
     req<{ reset: boolean }>(`/auth/reset`, { method: "POST", body: JSON.stringify({ email, code, new_password }) }),
 

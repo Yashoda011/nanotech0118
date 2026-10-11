@@ -70,7 +70,13 @@ const SignIn1 = ({ mode = "login", serverError, hideGoogle = false, onSubmit, on
     setFBusy(true);
     try {
       const res = await api.forgot(fEmail.trim());
-      setFMsg(res.dev_code ? `Demo code: ${res.dev_code} (valid 15 min)` : "If the account exists, a reset code was sent.");
+      setFMsg(
+        res.mailed
+          ? "Code sent to your email — check inbox and spam, then enter it below."
+          : res.dev_code
+            ? `Demo mode (no SMTP set up): your code is ${res.dev_code}`
+            : "If the account exists, a reset code was sent.",
+      );
       setFStep(2);
     } catch (e) {
       setFErr(e instanceof Error ? e.message : "Could not send code.");

@@ -28,7 +28,11 @@ function VerifyBanner() {
       }
       setExpanded(true);
       pushToast(
-        res.dev_code ? `Demo mailbox: your code is ${res.dev_code}` : "Verification code sent to your email",
+        res.mailed
+          ? "Code sent to your email — check inbox and spam"
+          : res.dev_code
+            ? `Demo mailbox (no SMTP set up): your code is ${res.dev_code}`
+            : "Verification code sent",
         "success",
       );
     } catch (e) {

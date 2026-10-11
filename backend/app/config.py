@@ -19,6 +19,14 @@ class Settings(BaseSettings):
     DEV_MAILBOX: bool = True
     # External research lookup (Semantic Scholar). Empty disables live lookup.
     RESEARCH_API_URL: str = "https://api.semanticscholar.org/graph/v1/paper/search"
+    # Outbound email (verification + reset codes). Empty SMTP_HOST = demo
+    # mode: codes surface in-app instead of by email. For Gmail, use an
+    # App Password (Google Account > Security > 2-Step Verification).
+    SMTP_HOST: str = ""
+    SMTP_PORT: int = 587
+    SMTP_USER: str = ""
+    SMTP_PASS: str = ""
+    SMTP_FROM: str = "NanoSphere <noreply@nanosphere.io>"
 
     class Config:
         env_file = ".env"
