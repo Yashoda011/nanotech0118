@@ -19,3 +19,7 @@ uploads/
 dev-server.log
 NanoSphere.url
 Open-NanoSphere.bat
+
+# python bytecode
+__pycache__/
+*.pyc
