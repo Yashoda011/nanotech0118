@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { Globe, Mail, ArrowLeft } from "lucide-react";
 import { Logo } from "@/components/shell/Sidebar";
-import { Toaster } from "@/components/ui";
+import { Button, Toaster } from "@/components/ui";
 import { SignIn1 } from "@/components/ui/modern-stunning-sign-in";
 import { useApp } from "@/store/app";
 
@@ -12,6 +13,7 @@ export default function AuthPage({ mode }: { mode: "login" | "signup" }) {
   const location = useLocation();
   const from = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname ?? "/";
 
+  const [method, setMethod] = useState<"choose" | "email">("choose");
   const [error, setError] = useState<string | null>(null);
 
   if (user) return <Navigate to="/" replace />;
@@ -55,7 +57,40 @@ export default function AuthPage({ mode }: { mode: "login" | "signup" }) {
             <Logo />
           </div>
 
-          <SignIn1 mode={mode} serverError={error} onSubmit={onSubmit} onGoogle={onGoogle} />
+          {method === "choose" ? (
+            <div>
+              <h2 className="text-center text-xl font-bold tracking-tight text-ink">
+                {mode === "login" ? "Welcome back" : "Join NanoSphere"}
+              </h2>
+              <p className="mt-1.5 text-center text-[13px] text-ink-muted">
+                Choose how you want to continue — links open instantly below.
+              </p>
+              <div className="mt-6 space-y-3">
+                <Button variant="gradient" size="lg" className="w-full" onClick={() => void onGoogle()}>
+                  <Globe className="size-4" /> Continue with Google
+                </Button>
+                <Button variant="secondary" size="lg" className="w-full" onClick={() => setMethod("email")}>
+                  <Mail className="size-4" /> Continue with Email
+                </Button>
+              </div>
+              <p className="mt-4 text-center text-[11.5px] leading-relaxed text-ink-muted/80">
+                Google is instant demo access · Email uses a password account with verification.
+              </p>
+            </div>
+          ) : (
+            <div>
+              <button
+                onClick={() => {
+                  setMethod("choose");
+                  setError(null);
+                }}
+                className="mb-4 inline-flex items-center gap-1.5 text-[12.5px] font-medium text-ink-muted transition hover:text-ink"
+              >
+                <ArrowLeft className="size-4" /> All sign-in options
+              </button>
+              <SignIn1 mode={mode} serverError={error} hideGoogle onSubmit={onSubmit} onGoogle={onGoogle} />
+            </div>
+          )}
         </motion.div>
       </main>
 

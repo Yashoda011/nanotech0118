@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowRight, ChevronDown } from "lucide-react";
 import { Card, SectionHeader, Badge, categoryTone } from "@/components/ui";
+import { MaterialArt } from "@/art";
 import { Material3D } from "@/components/material/Material3D";
 import { MATERIALS, TRENDING_IDS, getMaterial, type Material } from "@/data/materials";
 import { cn } from "@/lib/utils";
@@ -60,7 +61,7 @@ export function TrendingMaterials() {
       </div>
       <div className="border-t border-line px-5 py-4">
         <p className="mb-3 text-[13px] font-semibold text-ink">
-          Browse by dimension <span className="font-normal text-ink-muted">· 1D, 2D and 3D bulk — every material in 3D</span>
+          Browse by dimension <span className="font-normal text-ink-muted">· 1D, 2D and 3D bulk — open any card for its interactive 3D model</span>
         </p>
         <div className="space-y-2.5">
           {DIMENSIONS.map((dim) => {
@@ -91,10 +92,7 @@ export function TrendingMaterials() {
                         className="group overflow-hidden rounded-xl border border-line bg-panel/70 text-left transition-all hover:-translate-y-0.5 hover:border-blue-soft/40"
                       >
                         <div className="relative h-24 overflow-hidden">
-                          <Material3D kind={m.art} accent={m.accent} className="h-full w-full" />
-                          <span className="absolute left-2 top-2 rounded-full border border-white/15 bg-black/55 px-2 py-0.5 text-[10px] font-bold tracking-wide text-white backdrop-blur">
-                            3D
-                          </span>
+                          <MaterialArt kind={m.art} accent={m.accent} />
                         </div>
                         <div className="p-2.5">
                           <p className="truncate text-[12.5px] font-semibold text-ink">{m.name}</p>

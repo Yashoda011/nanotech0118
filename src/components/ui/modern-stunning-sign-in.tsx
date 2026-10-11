@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 export interface SignIn1Props {
   mode?: "login" | "signup";
   serverError?: string | null;
+  hideGoogle?: boolean;
   onSubmit?: (data: { name?: string; email: string; password: string }) => void;
   onGoogle?: () => void;
 }
@@ -18,7 +19,7 @@ const AVATARS = [
 
 const LOGO_SRC = `${import.meta.env.BASE_URL}nanotech-logo.jpg`;
 
-const SignIn1 = ({ mode = "login", serverError, onSubmit, onGoogle }: SignIn1Props) => {
+const SignIn1 = ({ mode = "login", serverError, hideGoogle = false, onSubmit, onGoogle }: SignIn1Props) => {
   const [name, setName] = React.useState("");
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
@@ -111,13 +112,15 @@ const SignIn1 = ({ mode = "login", serverError, onSubmit, onGoogle }: SignIn1Pro
               {mode === "signup" ? "Create account" : "Sign in"}
             </button>
             {/* Google Sign In */}
-            <button
-              onClick={onGoogle}
-              className="mb-2 flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-b from-[#232526] to-[#2d2e30] px-5 py-3 text-sm font-medium text-white shadow transition hover:brightness-110"
-            >
-              <Globe className="h-5 w-5" />
-              Continue with Google
-            </button>
+            {!hideGoogle && (
+              <button
+                onClick={onGoogle}
+                className="mb-2 flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-b from-[#232526] to-[#2d2e30] px-5 py-3 text-sm font-medium text-white shadow transition hover:brightness-110"
+              >
+                <Globe className="h-5 w-5" />
+                Continue with Google
+              </button>
+            )}
             <div className="mt-2 w-full text-center">
               <span className="text-xs text-gray-400">
                 {mode === "signup" ? "Already have an account? " : "Don't have an account? "}
