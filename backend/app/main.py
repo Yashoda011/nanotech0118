@@ -29,6 +29,8 @@ try:
         if _cols and "provider" not in _cols:
             _conn.execute(_text("ALTER TABLE users ADD COLUMN provider VARCHAR(20) DEFAULT 'email'"))
             _conn.execute(_text("UPDATE users SET provider = 'email' WHERE provider IS NULL"))
+        if _cols and "phone" not in _cols:
+            _conn.execute(_text("ALTER TABLE users ADD COLUMN phone VARCHAR(30) DEFAULT ''"))
 except Exception:
     pass
 

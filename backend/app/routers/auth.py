@@ -25,11 +25,11 @@ def _out(u: User) -> dict:
             "is_admin": bool(getattr(u, "is_admin", False) or u.email.lower() in _admin_emails())}
 
 
-def _create_member(db: Session, name: str, email: str, password: str, provider: str) -> User:
+def _create_member(db: Session, name: str, email: str, password: str, provider: str, phone: str = "") -> User:
     """Shared member creation: unique email, hashed password, seeded workspace."""
     if db.query(User).filter(User.email == email).first():
         raise HTTPException(status_code=400, detail="An account with this email already exists — sign in instead")
-    user = User(name=name.strip(), email=email, password_hash=hash_password(password), provider=provider)
+    user = User(name=name.strip(), email=email, password_hash=hash_password(password), provider=provider, phone=phone.strip()[:30])
     if email in _admin_emails():
         user.is_admin = True
     db.add(user)
@@ -48,6 +48,7 @@ class GoogleIn(BaseModel):
     name: str = Field(min_length=1, max_length=120)
     email: EmailStr
     password: str = Field(min_length=6, max_length=128)
+    phone: str = Field(default="", max_length=30)
 
 
 @router.post("/signup", response_model=TokenOut, status_code=201)
@@ -65,7 +66,7 @@ def google(body: GoogleIn, db: Session = Depends(get_db)):
     email = body.email.strip().lower()
     if not body.name.strip():
         raise HTTPException(status_code=400, detail="Name is required.")
-    return _token_for(_create_member(db, body.name.strip(), email, body.password, "google"))
+    return _token_for(_create_member(db, body.name.strip(), email, body.password, "google", body.phone or ""))
 
 
 @router.post("/login", response_model=TokenOut)

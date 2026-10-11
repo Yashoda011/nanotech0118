@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Globe, Mail, ArrowLeft, ServerOff } from "lucide-react";
@@ -9,7 +9,7 @@ import { api, API_BASE } from "@/lib/api";
 import { useApp } from "@/store/app";
 
 export default function AuthPage({ mode }: { mode: "login" | "signup" }) {
-  const { user, login, signup, googleSignup, pushToast } = useApp();
+  const { user, login, signup, googleSignup, pushToast, settings } = useApp();
   const navigate = useNavigate();
   const location = useLocation();
   const from = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname ?? "/";
@@ -21,7 +21,27 @@ export default function AuthPage({ mode }: { mode: "login" | "signup" }) {
   const [gEmail, setGEmail] = useState("");
   const [gPassword, setGPassword] = useState("");
   const [gError, setGError] = useState<string | null>(null);
+  const [gPhone, setGPhone] = useState("");
+  const [gMode, setGMode] = useState<"choose" | "custom">("choose");
   const [serverDown, setServerDown] = useState(false);
+
+  // Known mail ids on this browser (previous accounts + profile) to choose from.
+  const knownEmails = useMemo(() => {
+    const out: string[] = [];
+    try {
+      const raw = localStorage.getItem("nanosphere:accounts");
+      const arr = raw ? (JSON.parse(raw) as { email?: string }[]) : [];
+      arr.forEach((a) => {
+        if (a.email && !out.includes(a.email)) out.push(a.email);
+      });
+    } catch {
+      /* ignore */
+    }
+    if (settings.email && !/nanosphere\.(io|local)/.test(settings.email) && !out.includes(settings.email)) {
+      out.push(settings.email);
+    }
+    return out.slice(0, 5);
+  }, [settings.email, googleOpen]);
 
   // Show immediately if the API is unreachable, so users know WHY
   // Google signup can't create a server account right now.
@@ -62,12 +82,18 @@ export default function AuthPage({ mode }: { mode: "login" | "signup" }) {
 
   const onGoogle = () => {
     setGError(null);
+    setGMode("choose");
     setGoogleOpen(true);
   };
 
   const submitGoogle = async () => {
     setGError(null);
-    const err = await googleSignup({ name: gName, email: gEmail, password: gPassword });
+    const email = gEmail.trim();
+    if (!email) {
+      setGError("Choose a mail id or type a new one.");
+      return;
+    }
+    const err = await googleSignup({ name: gName, email, password: gPassword, phone: gPhone });
     if (err) {
       setGError(err);
       return;
@@ -96,8 +122,8 @@ export default function AuthPage({ mode }: { mode: "login" | "signup" }) {
             <div className="mb-4 flex items-start gap-2.5 rounded-xl border border-gold/30 bg-gold/8 px-4 py-3 text-[12.5px] leading-relaxed text-ink-soft">
               <ServerOff className="mt-0.5 size-4 shrink-0 text-gold" />
               <span>
-                Can&apos;t reach the server{API_BASE.includes("127.0.0.1") || API_BASE.includes("localhost") ? " on this computer — double-click start-all.bat in the project folder, then retry" : ""}.
-                Email signup still works in this browser; Google accounts need the server.
+                Sign-in needs the backend server{API_BASE.includes("127.0.0.1") || API_BASE.includes("localhost") ? " on this computer — double-click start-all.bat in the project folder, then retry" : ""}.
+                Nothing here works offline — not even email sign-in.
               </span>
             </div>
           )}
@@ -152,11 +178,44 @@ export default function AuthPage({ mode }: { mode: "login" | "signup" }) {
         }
       >
         <div className="space-y-4">
+          {knownEmails.length > 0 && gMode === "choose" && (
+            <div className="space-y-1.5">
+              <p className="text-[13px] font-medium text-ink">Choose a mail id</p>
+              {knownEmails.map((em) => (
+                <button
+                  key={em}
+                  onClick={() => {
+                    setGEmail(em);
+                    setGMode("custom");
+                  }}
+                  className="flex w-full items-center gap-2.5 rounded-xl border border-line px-3.5 py-2.5 text-left text-[13px] text-ink-soft transition-colors hover:border-blue-soft/40 hover:text-ink"
+                >
+                  <span className="grid size-7 shrink-0 place-items-center rounded-full bg-blue/12 text-[11px] font-bold text-blue-soft">
+                    {em.slice(0, 1).toUpperCase()}
+                  </span>
+                  <span className="truncate">{em}</span>
+                </button>
+              ))}
+              <button onClick={() => { setGEmail(""); setGMode("custom"); }} className="text-[12.5px] text-blue-soft hover:underline">
+                Use a different mail id
+              </button>
+            </div>
+          )}
+          {(knownEmails.length === 0 || gMode === "custom") && (
+            <Field label="Gmail address">
+              <Input type="email" value={gEmail} onChange={(e) => setGEmail(e.target.value)} placeholder="you@gmail.com" autoComplete="email" />
+            </Field>
+          )}
+          {gMode === "custom" && knownEmails.length > 0 && (
+            <button onClick={() => setGMode("choose")} className="text-[12.5px] text-ink-muted hover:text-ink">
+              ← Back to saved mail ids
+            </button>
+          )}
           <Field label="Full name">
             <Input value={gName} onChange={(e) => setGName(e.target.value)} placeholder="Ada Lovelace" autoComplete="name" />
           </Field>
-          <Field label="Gmail address">
-            <Input type="email" value={gEmail} onChange={(e) => setGEmail(e.target.value)} placeholder="you@gmail.com" autoComplete="email" />
+          <Field label="Phone number (optional)">
+            <Input type="tel" value={gPhone} onChange={(e) => setGPhone(e.target.value)} placeholder="+91 98765 43210" autoComplete="tel" />
           </Field>
           <Field label="Password (min 6 characters)">
             <Input type="password" value={gPassword} onChange={(e) => setGPassword(e.target.value)} placeholder="Choose a password" autoComplete="new-password" />

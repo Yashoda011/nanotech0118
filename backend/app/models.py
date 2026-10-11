@@ -24,6 +24,7 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(255), nullable=False, unique=True, index=True)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     provider: Mapped[str] = mapped_column(String(20), default="email")
+    phone: Mapped[str] = mapped_column(String(30), default="")
     role: Mapped[str] = mapped_column(String(120), default="Principal Researcher")
     density: Mapped[str] = mapped_column(String(20), default="comfortable")
     default_metric: Mapped[str] = mapped_column(String(20), default="electrical")

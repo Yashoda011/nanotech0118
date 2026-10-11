@@ -70,7 +70,7 @@ interface AppState {
   toasts: Toast[];
   login: (email: string, password: string) => Promise<string | null>;
   signup: (input: { name: string; email: string; password: string }) => Promise<string | null>;
-  googleSignup: (input: { name: string; email: string; password: string }) => Promise<string | null>;
+  googleSignup: (input: { name: string; email: string; password: string; phone?: string }) => Promise<string | null>;
   continueAsGuest: () => Promise<void>;
   logout: () => void;
   syncFromBackend: () => Promise<void>;
@@ -257,20 +257,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
-  const loginLocal = useCallback(
-    (email: string, password: string): string | null => {
-      const e = email.trim().toLowerCase();
-      if (!e || !password) return "Email and password are required.";
-      const acct = accounts.find((a) => a.email === e);
-      if (!acct) return "No account found for that email. Create one first.";
-      if (acct.password !== password) return "Incorrect password. Try again.";
-      const u: AuthUser = { name: acct.name, email: acct.email, guest: false, emailVerified: true, isAdmin: false };
-      setUser(u);
-      setSettings((prev) => ({ ...prev, name: u.name, email: u.email }));
-      return null;
-    },
-    [accounts],
-  );
+  // Auth is backend-enforced on every page including sign-in: no local
+  // fallback accounts. Without a reachable server, auth cannot proceed.
+  const backendRequired = useCallback(() => {
+    setBackendOnline(false);
+    const local = API_BASE.includes("127.0.0.1") || API_BASE.includes("localhost");
+    return local
+      ? "Backend isn't running on this computer — double-click start-all.bat in the project folder, then retry."
+      : "No server is connected to this site yet — connect the backend to sign in.";
+  }, []);
 
   const login = useCallback(
     async (email: string, password: string): Promise<string | null> => {
@@ -284,14 +279,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
         await refreshBilling();
         return null;
       } catch (e) {
-        if (isNetworkError(e)) {
-          setBackendOnline(false);
-          return loginLocal(email, password);
-        }
+        if (isNetworkError(e)) return backendRequired();
         return e instanceof Error ? e.message : "Login failed.";
       }
     },
-    [applyBackendSnapshot, loginLocal],
+    [applyBackendSnapshot, backendRequired, refreshBilling],
   );
 
   const signup = useCallback(
@@ -311,31 +303,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
         await refreshBilling();
         return null;
       } catch (e) {
-        if (isNetworkError(e)) {
-          setBackendOnline(false);
-          if (accounts.some((a) => a.email === email)) return "An account with this email already exists — sign in instead.";
-          const acct: Account = { name, email, password: input.password };
-          setAccounts((prev) => [...prev, acct]);
-          const u: AuthUser = { name, email, guest: false, emailVerified: false, isAdmin: false };
-          setUser(u);
-          setSettings((prev) => ({ ...prev, name: u.name, email: u.email }));
-          return null;
-        }
+        if (isNetworkError(e)) return backendRequired();
         return e instanceof Error ? e.message : "Signup failed.";
       }
     },
-    [accounts, applyBackendSnapshot, refreshBilling],
+    [applyBackendSnapshot, backendRequired, refreshBilling],
   );
 
   const googleSignup = useCallback(
-    async (input: { name: string; email: string; password: string }): Promise<string | null> => {
+    async (input: { name: string; email: string; password: string; phone?: string }): Promise<string | null> => {
       const name = input.name.trim();
       const email = input.email.trim().toLowerCase();
+      const phone = (input.phone ?? "").trim();
       if (!name) return "Name is required.";
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return "Enter a valid email address.";
       if (input.password.length < 6) return "Password must be at least 6 characters.";
       try {
-        const res = await api.googleSignup(name, email, input.password);
+        const res = await api.googleSignup(name, email, input.password, phone);
         setToken(res.access_token);
         const u = toLocalUser(res.user);
         setUser(u);
@@ -344,17 +328,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
         await refreshBilling();
         return null;
       } catch (e) {
-        if (isNetworkError(e)) {
-          setBackendOnline(false);
-          const local = API_BASE.includes("127.0.0.1") || API_BASE.includes("localhost");
-          return local
-            ? "Backend isn't running on this computer — double-click start-all.bat in the project folder, then retry."
-            : "No server is connected to this site yet — Google accounts need the backend. Try email signup instead.";
-        }
+        if (isNetworkError(e)) return backendRequired();
         return e instanceof Error ? e.message : "Google sign-up failed.";
       }
     },
-    [applyBackendSnapshot, refreshBilling],
+    [applyBackendSnapshot, backendRequired, refreshBilling],
   );
 
   const continueAsGuest = useCallback(async () => {    try {

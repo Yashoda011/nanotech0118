@@ -54,10 +54,10 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ name, email, password }),
     }),
-  googleSignup: (name: string, email: string, password: string) =>
+  googleSignup: (name: string, email: string, password: string, phone = "") =>
     req<{ access_token: string; user: AuthUser }>(`/auth/google`, {
       method: "POST",
-      body: JSON.stringify({ name, email, password }),
+      body: JSON.stringify({ name, email, password, phone }),
     }),
   login: (email: string, password: string) =>
     req<{ access_token: string; user: AuthUser }>(`/auth/login`, {
