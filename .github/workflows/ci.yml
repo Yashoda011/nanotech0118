@@ -29,5 +29,13 @@ jobs:
           python-version: "3.12"
       - run: pip install -r backend/requirements.txt
       - run: python -m compileall -q backend/app
+      - name: Start API under test
+        run: |
+          python -m uvicorn backend.app.main:app --port 8000 --host 127.0.0.1 &
+          for i in $(seq 1 20); do
+            curl -sf http://127.0.0.1:8000/health && break
+            sleep 3
+          done
+          curl -sf http://127.0.0.1:8000/health
       - run: python backend/verify_full.py
       - run: python backend/verify_adversarial.py
